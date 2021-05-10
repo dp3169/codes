@@ -1,0 +1,53 @@
+def value_iteration(robot):
+    alpha=0.99
+    u=np.array([-5,0,5])
+    value_function = np.zeros([50,50])
+    value_new=np.zeros([50,50])
+    policy = np.zeros([50,50])
+    iteration_counter=0
+    while(True):
+        
+        iteration_counter=iteration_counter+1
+        #go through range of theta
+        for theta_ind in range(len(discretized_theta)):
+            
+            #go through range of theta dot
+            for theta_dot_ind in range(len(discretized_thetadot)):
+                possible_values=np.array([0,0,0])
+                
+                #go through range of u
+                for i in range(len(u)):
+                    #calculate g(u)
+                    g=(discretized_theta[theta_ind]-np.pi)**2+0.01*(discretized_thetadot[theta_dot_ind]**2)+0.0001*(u[i]**2)
+                    
+                    #get state at j_n+1 via robot.next_state(state,u)
+                    predicted_state=robot.next_state([discretized_theta[theta_ind],discretized_thetadot[theta_dot_ind]],u[i])
+                    
+                    #get the closest mapped state to the generated one
+                    index_closest_theta=np.argmin(np.abs(discretized_theta-predicted_state[0]))
+                    index_closest_theta_dot=np.argmin(np.abs(discretized_thetadot-predicted_state[1]))
+                    
+                    #calculate alpha*j at the j+1 state
+                    alpha_j=alpha*value_function[index_closest_theta,index_closest_theta_dot]
+                    
+                    #add alpha*j to g to get values
+                    possible_values[i]=g+alpha_j
+                
+                #get index of minimum value of potential values at a given theta and theta dot    
+                lowest_value_index=np.argmin(possible_values)    
+                
+                #assign that indexed value of u to optimal policy at [theta,theta_dot] 
+                policy[theta_ind,theta_dot_ind]=u[lowest_value_index]
+                
+                #set value_new at theta,theta dot to the minimum value of the possible values
+                value_new[theta_ind,theta_dot_ind]=possible_values[lowest_value_index]
+        
+        #check for convergence
+        if((np.abs(value_function-value_new))<10**-3).all():
+            print(np.max(np.abs(value_function-value_new)))
+            print(iteration_counter)
+            break
+        #if not converged set j=j+1
+        value_function=value_new.copy()
+    return value_function,policy
+
